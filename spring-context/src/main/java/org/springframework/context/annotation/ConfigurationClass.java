@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
+import org.springframework.beans.factory.BeanRegistrar;
 import org.springframework.beans.factory.parsing.Location;
 import org.springframework.beans.factory.parsing.Problem;
 import org.springframework.beans.factory.parsing.ProblemReporter;
@@ -64,6 +65,8 @@ final class ConfigurationClass {
 
 	private final Map<String, Class<? extends BeanDefinitionReader>> importedResources =
 			new LinkedHashMap<>();
+
+	private final Set<BeanRegistrar> beanRegistrars = new LinkedHashSet<>();
 
 	private final Map<ImportBeanDefinitionRegistrar, AnnotationMetadata> importBeanDefinitionRegistrars =
 			new LinkedHashMap<>();
@@ -202,12 +205,29 @@ final class ConfigurationClass {
 		return this.beanMethods;
 	}
 
+	boolean hasNonStaticBeanMethods() {
+		for (BeanMethod beanMethod : this.beanMethods) {
+			if (!beanMethod.getMetadata().isStatic()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	void addImportedResource(String importedResource, Class<? extends BeanDefinitionReader> readerClass) {
 		this.importedResources.put(importedResource, readerClass);
 	}
 
 	Map<String, Class<? extends BeanDefinitionReader>> getImportedResources() {
 		return this.importedResources;
+	}
+
+	void addBeanRegistrar(BeanRegistrar beanRegistrar) {
+		this.beanRegistrars.add(beanRegistrar);
+	}
+
+	public Set<BeanRegistrar> getBeanRegistrars() {
+		return this.beanRegistrars;
 	}
 
 	void addImportBeanDefinitionRegistrar(ImportBeanDefinitionRegistrar registrar, AnnotationMetadata importingClassMetadata) {
@@ -222,8 +242,9 @@ final class ConfigurationClass {
 	void validate(ProblemReporter problemReporter) {
 		Map<String, @Nullable Object> attributes = this.metadata.getAnnotationAttributes(Configuration.class.getName());
 
-		// A configuration class may not be final (CGLIB limitation) unless it declares proxyBeanMethods=false
-		if (attributes != null && (Boolean) attributes.get("proxyBeanMethods") && this.metadata.isFinal()) {
+		// A configuration class may not be final (CGLIB limitation) unless it does not have to proxy bean methods
+		if (attributes != null && (Boolean) attributes.get("proxyBeanMethods") && hasNonStaticBeanMethods() &&
+				this.metadata.isFinal()) {
 			problemReporter.error(new FinalConfigurationProblem());
 		}
 
