@@ -134,6 +134,30 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 
 	private final XmlValidationModeDetector validationModeDetector = new XmlValidationModeDetector();
 
+	/**
+	 * 这句话定义了一个 `ThreadLocal` 变量 `resourcesCurrentlyBeingLoaded`，它用于存储当前线程正在加载的 `EncodedResource` 集合。
+	 *
+	 * ```java
+	 * private final ThreadLocal<Set<EncodedResource>> resourcesCurrentlyBeingLoaded = NamedThreadLocal.withInitial(
+	 *     "XML bean definition resources currently being loaded", () -> new HashSet<>(4));
+	 * ```
+	 *
+	 * ### 解释
+	 *
+	 * - `ThreadLocal<Set<EncodedResource>>`: 声明一个 `ThreadLocal` 变量，它持有一个 `Set<EncodedResource>` 对象。
+	 * - `NamedThreadLocal.withInitial`: 创建一个带有初始值的 `ThreadLocal` 变量。`NamedThreadLocal` 是 `ThreadLocal` 的一个子类，允许为 `ThreadLocal` 变量命名，便于调试。
+	 * - `() -> new HashSet<>(4)`: 提供一个初始值生成器，返回一个新的 `HashSet`，初始容量为 4。
+	 *
+	 * ### 为什么使用 `ThreadLocal`
+	 *
+	 * `ThreadLocal` 提供了线程局部变量，每个线程都拥有自己独立的变量副本，互不干扰。使用 `ThreadLocal` 的原因包括：
+	 *
+	 * 1. **线程安全**：避免多个线程同时访问共享变量导致的线程安全问题。
+	 * 2. **独立性**：每个线程可以独立地操作自己的变量副本，不会影响其他线程。
+	 * 3. **简化代码**：避免显式的同步操作，简化代码逻辑。
+	 *
+	 * 在这个示例中，每个线程都有自己独立的 `SimpleDateFormat` 实例，避免了线程安全问题。
+	 * */
 	private final ThreadLocal<Set<EncodedResource>> resourcesCurrentlyBeingLoaded = NamedThreadLocal.withInitial(
 			"XML bean definition resources currently being loaded", () -> new HashSet<>(4));
 
@@ -342,6 +366,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 			if (encodedResource.getEncoding() != null) {
 				inputSource.setEncoding(encodedResource.getEncoding());
 			}
+			// 从 XML 文件中加载 BeanDefinition
 			return doLoadBeanDefinitions(inputSource, encodedResource.getResource());
 		}
 		catch (IOException ex) {

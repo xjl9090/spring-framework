@@ -429,7 +429,7 @@ public class BeanDefinitionParserDelegate {
 		if (containingBean == null) {
 			checkNameUniqueness(beanName, aliases, ele);
 		}
-
+		//解析了一坨属性然后赋值给beanDefinition
 		AbstractBeanDefinition beanDefinition = parseBeanDefinitionElement(ele, beanName, containingBean);
 		if (beanDefinition != null) {
 			if (!StringUtils.hasText(beanName)) {
@@ -495,7 +495,7 @@ public class BeanDefinitionParserDelegate {
 	 */
 	public @Nullable AbstractBeanDefinition parseBeanDefinitionElement(
 			Element ele, String beanName, @Nullable BeanDefinition containingBean) {
-
+//一个队列用于存储解析过程中的状态
 		this.parseState.push(new BeanEntry(beanName));
 
 		String className = null;
@@ -508,15 +508,17 @@ public class BeanDefinitionParserDelegate {
 		}
 
 		try {
+			//create GenericBeanDefinition
 			AbstractBeanDefinition bd = createBeanDefinition(className, parent);
-
+			//设置给前面创建的GenericBeanDefinition的属性
 			parseBeanDefinitionAttributes(ele, beanName, containingBean, bd);
 			bd.setDescription(DomUtils.getChildElementValueByTagName(ele, DESCRIPTION_ELEMENT));
-
+			//给bd设置meta属性
 			parseMetaElements(ele, bd);
+			//给bd中的override属性设置lookup-override和replaced-method
 			parseLookupOverrideSubElements(ele, bd.getMethodOverrides());
 			parseReplacedMethodSubElements(ele, bd.getMethodOverrides());
-
+			//解析constructor-arg，property，qualifier
 			parseConstructorArgElements(ele, bd);
 			parsePropertyElements(ele, bd);
 			parseQualifierElements(ele, bd);
@@ -801,6 +803,7 @@ public class BeanDefinitionParserDelegate {
 						}
 					}
 					finally {
+						//状态parseState出栈
 						this.parseState.pop();
 					}
 				}
@@ -811,6 +814,7 @@ public class BeanDefinitionParserDelegate {
 		}
 		else {
 			try {
+				//进入下一个阶段ConstructorArgumentEntry，parseState入栈
 				this.parseState.push(new ConstructorArgumentEntry());
 				Object value = parsePropertyValue(ele, bd, null);
 				ConstructorArgumentValues.ValueHolder valueHolder = new ConstructorArgumentValues.ValueHolder(value);
@@ -838,6 +842,7 @@ public class BeanDefinitionParserDelegate {
 			error("Tag 'property' must have a 'name' attribute", ele);
 			return;
 		}
+		//进入下一个阶段PropertyEntry，parseState入栈
 		this.parseState.push(new PropertyEntry(propertyName));
 		try {
 			if (bd.getPropertyValues().contains(propertyName)) {
@@ -851,6 +856,7 @@ public class BeanDefinitionParserDelegate {
 			bd.getPropertyValues().addPropertyValue(pv);
 		}
 		finally {
+			//状态parseState PropertyEntry出栈
 			this.parseState.pop();
 		}
 	}
@@ -1367,6 +1373,7 @@ public class BeanDefinitionParserDelegate {
 	 * @return the resulting bean definition
 	 */
 	public @Nullable BeanDefinition parseCustomElement(Element ele, @Nullable BeanDefinition containingBd) {
+		//获得URI
 		String namespaceUri = getNamespaceURI(ele);
 		if (namespaceUri == null) {
 			return null;

@@ -147,6 +147,24 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 	/**
 	 * Load the specified NamespaceHandler mappings lazily.
 	 */
+	/**
+	 * 这段代码里面使用了分段锁，并且使用了voliatle关键字，
+	 * 这样可以保证handlerMappings的可见性，同时也保证了handlerMappings的线程安全性。
+	 *
+	 *
+	 * synchronized 和 ConcurrentHashMap 都用于确保线程安全，但它们的用法和目的有所不同：
+	 * synchronized:
+	 * 用于在方法或代码块上加锁，确保同一时间只有一个线程可以执行被锁定的代码。
+	 * 适用于需要严格控制对某些资源的访问的场景。
+	 * 可能会导致性能瓶颈，因为它会阻塞其他线程的访问。
+	 * ConcurrentHashMap:
+	 * 是一个线程安全的集合类，允许多个线程并发地读取和写入数据。
+	 * 使用分段锁机制，减少了锁的竞争，提高了并发性能。
+	 * 适用于需要高效并发访问的场景。
+	 * 在你的代码中，synchronized 用于确保 handlerMappings 的初始化是线程安全的，而 ConcurrentHashMap 则用于在初始化完成后，提供高效的并发访问。
+	 *
+	 * 但是这段代码还没有完全理清楚
+	 * */
 	private Map<String, Object> getHandlerMappings() {
 		Map<String, Object> handlerMappings = this.handlerMappings;
 		if (handlerMappings == null) {
